@@ -1,0 +1,24 @@
+span {
+    display: block;
+}
+
+.listImage {
+    width: 300px;
+    height: 300px;
+}
+
+.categoryName {
+    position: relative;
+    color: white;
+}
+
+.category-container {
+    margin: 10px;
+}
+
+.inner-container {
+    display: inline-block;
+    margin: 15px;
+    width: 300px;
+    height: 300px;
+}
