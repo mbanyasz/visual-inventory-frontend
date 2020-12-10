@@ -1,27 +1,23 @@
-import React from 'react';  
-import axios from 'axios';
+import React from 'react'; 
 import ReactTableComponent from '../components/ReactTableComponent';
 import { Link } from "react-router-dom";
 
 import "../../css/pages/CommonTable.css"
 
+import edit from '../../images/edit.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 const columns = [
     {
-		Header: "Edit",
+		Header: "",
 		accessor: 'id',
 		filterable: false,
 		width: 40,
-		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.value}` }}>Edit</Link></div>
+		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.value}` }}><img className="image" src={edit} alt="editLogo"/></Link></div>
 	},
 	{
-		Header: "Delete",
-		accessor: 'id',
-		filterable: false,
-		width: 70,
-		Cell: cell => <div className="center"><button onClick={() => confirmDelete(`${cell.value}`)}>Delete</button></div>
-	},
-	{
-		Header: "name",
+		Header: "Room",
 		accessor: 'name',
 		filterable: true,
 		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.original.id}` }}>{cell.value}</Link></div>,
@@ -36,16 +32,9 @@ const columns = [
 		Header: "Floor",
 		accessor: 'floor',
 		filterable: true,
-		filterMethod: (filter, row) => row[filter.id] == filter.value,
+		filterMethod: (filter, row) => row[filter.id] === parseInt(filter.value),
 		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
 	}];
-
-function confirmDelete(id) {
-	if(window.confirm("Are you sure you wish to delete this item?")) {
-		axios.delete("http://192.168.1.5:8080/api/rooms/" + id);
-		window.location.reload();
-	}	
-}
 
 export default class ListRooms extends React.Component {
 
@@ -57,7 +46,7 @@ export default class ListRooms extends React.Component {
 	}
 	
 	componentDidMount() {
-		fetch("http://192.168.1.5:8080/api/rooms")
+		fetch(BACKEND_SERVER_URL + "rooms")
 				.then(res => res.json())
 				.then(json => this.setState({ data: json }));
 	}

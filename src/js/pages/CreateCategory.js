@@ -4,7 +4,9 @@ import axios from 'axios';
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
 
-import no_image from '../../png/no-image.png';
+import no_image from '../../images/no-image.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
 
 export default class CreateCategory extends React.Component {
 
@@ -54,7 +56,7 @@ export default class CreateCategory extends React.Component {
         formData.append('data', new Blob([JSON.stringify({"name": this.state.name})],
             {type: "application/json"}));
 
-        await axios.post("http://192.168.1.5:8080/api/categories/", formData);
+        await axios.post(BACKEND_SERVER_URL + "categories/", formData);
 
         this.props.history.push({
             pathname: '/categories',
@@ -73,7 +75,7 @@ export default class CreateCategory extends React.Component {
                 <div className="form">
                     <form onSubmit={this.handleSubmit}>
                         <span className="row">
-                            <label htmlFor="name">Name*</label>
+                            <label htmlFor="name">Name</label>
                             <input type="text" id="name" value={this.state.name} 
                                 onChange={this.handleChange} name="name" required></input>                            
                         </span>

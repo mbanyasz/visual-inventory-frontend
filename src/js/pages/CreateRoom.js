@@ -4,6 +4,8 @@ import axios from 'axios';
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
 
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 export default class CreateRoom extends React.Component {
 
     constructor(props) {
@@ -33,7 +35,7 @@ export default class CreateRoom extends React.Component {
             floor: this.state.floor
         }
 
-        await axios.post("http://192.168.1.5:8080/api/rooms/", room);
+        await axios.post(BACKEND_SERVER_URL + "rooms/", room);
 
         this.props.history.push({
             pathname: '/rooms',

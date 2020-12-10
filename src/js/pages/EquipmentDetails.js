@@ -1,88 +1,195 @@
 import React from 'react';  
 import axios from 'axios';
+import ReactTableComponent from '../components/ReactTableComponent';
+import { Link } from "react-router-dom";
 
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
+
+import move from '../../images/move.png';
+import deleteLogo from '../../images/delete.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
+const columns = [
+	{
+		Header: "",
+		accessor: 'id',
+		filterable: false,
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/move`, myProps: cell.original }}><img className="image" src={move} alt="moveLogo"/></Link></div>
+	},
+	{
+		Header: "",
+		accessor: 'id',
+		filterable: false,
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/delete`, myProps: cell.original }}><img className="image" src={deleteLogo} alt="deleteLogo"/></Link></div>
+	},
+    {
+		Header: "#",
+		accessor: 'numberOfItems',
+		filterable: false,		
+		width: 80,
+		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
+	},
+	{
+		Header: "Category",
+		accessor: 'equipment.category.name',
+		filterable: true,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/categories/details/${cell.original.equipment.category.id}` }}>{cell.value}</Link></div>,
+    },
+    {
+		Header: "Room",
+		accessor: 'room.name',
+		filterable: true,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.original.room.id}` }}>{cell.value}</Link></div>,
+    },
+    {
+		Header: "Building",
+		accessor: 'room.building',
+		filterable: true,
+		Cell: cell => <div className="center">{cell.value}</div>,
+    },
+    {
+		Header: "Floor",
+		accessor: 'room.floor',
+		filterable: true,
+		filterMethod: (filter, row) => row[filter.id] === parseInt(filter.value),
+		Cell: cell => <div className="center">{cell.value}</div>,
+    }
+];
+
+function b64toBlob(b64Data, sliceSize=512) {
+    const contentType = 'image/png';
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+  
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);	  
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }	  
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+  
+    const blob = new Blob(byteArrays, {type: contentType});
+    return blob;
+}
 
 export default class EquipmentDetails extends React.Component {
 
     constructor(props) {
         super(props);
-		this.state = {
-            rooms: [],
+		this.state = {            
+			imageWasChanged: false,
             categories: [],
-            equipment: {}
+            equipment: {
+				name: '',
+				image: null,
+                imageBytes: null,
+                category : {},
+				items: []
+			}
         }; 
         
         this.handleChange = this.handleChange.bind(this);
-        this.handleCheckboxChange = this.handleCheckboxChange.bind(this);        
+        this.handleCategoryChange = this.handleCategoryChange.bind(this);
+        this.onImageChange = this.onImageChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.confirmDeleteEquipment = this.confirmDeleteEquipment.bind(this);  
     }
 
-    componentDidMount() {
-        fetch("http://192.168.1.5:8080/api/equipments/" + this.props.match.params.id)
+    async componentDidMount() {
+		await fetch(BACKEND_SERVER_URL + "equipments/" + this.props.match.params.id)
             .then(res => res.json())
             .then(json => this.setState({ equipment: json }));
-		fetch("http://192.168.1.5:8080/api/rooms")
-			.then(res => res.json())
-            .then(json => this.setState({ rooms: json }));
-        fetch("http://192.168.1.5:8080/api/categories")
-			.then(res => res.json())
+        await fetch(BACKEND_SERVER_URL + "categories")
+            .then(res => res.json())
             .then(json => this.setState({ categories: json }));
+		this.setState({
+			equipment : {
+				...this.state.equipment,
+				image: URL.createObjectURL(b64toBlob(this.state.equipment.imageBytes))
+			}
+		});
 	}
 
     handleChange(event) {        
         this.setState({            							
 			equipment : {							
-				...this.state.equipment,
-				[event.target.name]: event.target.value
+                ...this.state.equipment,
+                [event.target.name]: event.target.value				
 			}
         });
     }
 
-    handleCheckboxChange(event) { 
+    handleCategoryChange(event) {        
         this.setState({            							
 			equipment : {							
-				...this.state.equipment,
-				functional: !this.state.equipment.functional
+                ...this.state.equipment,
+                category : {
+                    ...this.state.equipment.category,
+                    [event.target.name]: event.target.value	
+                }			
 			}
         });
     }
+
     
     async handleSubmit(event) {
         event.preventDefault();
 
         var equipment = {
-            name: this.state.equipment.name,
-            roomId: this.state.equipment.roomId,
-            categoryId: this.state.equipment.categoryId,
-            functional: this.state.equipment.functional
+            "name": this.state.equipment.name,
+            "categoryId": this.state.equipment.category.id
         }
 
-        await axios.put("http://192.168.1.5:8080/api/equipments/" + this.state.equipment.id, equipment);
+        let formData = new FormData();
+		if(this.state.imageWasChanged) {
+			formData.append("file", this.state.equipment.imageBytes);
+		} else {
+			let image = await fetch(this.state.equipment.image)
+				.then(image => image.blob());
+			formData.append("file", image);
+		}
+
+		formData.append('data', new Blob([JSON.stringify(equipment)], {type: "application/json"}));
+
+        await axios.put(BACKEND_SERVER_URL + "equipments/" + this.state.equipment.id, formData);
 
         this.props.history.push({
             pathname: '/equipments',
         })
     }
 
-    async confirmDeleteEquipment(id) {
-        if(window.confirm("Are you sure you wish to delete this equipment?")) {
-            await axios.delete("http://192.168.1.5:8080/api/equipments/" + id);
-            this.props.history.push({
-                pathname: '/equipments',
-            })
-        }		
+    async confirmDeleteEquipment(id, items) {
+        if(items && items.length > 0) {
+			window.alert("You can't delete this equipment until it has items associated with it")
+		} else {
+			if(window.confirm("Are you sure you wish to delete this equipment?")) {
+                await axios.delete(BACKEND_SERVER_URL + "equipments/" + id);
+                this.props.history.push({
+                    pathname: '/equipments',
+                })
+            }
+		}
 	}
 
-    createSelectRooms() {
-        var rooms = [];        
-        this.state.rooms.sort((a, b) => (a.name.toLowerCase() > b.name.toLowerCase()) ? 1 : -1);
-        this.state.rooms.forEach(function(element) {
-            rooms.push(<option value={element.id}>{element.name}</option>)
-        })
-        return rooms;
+    onImageChange(event) {
+        if (event.target.files && event.target.files[0]) {
+            let img = event.target.files[0];
+            this.setState({
+				imageWasChanged: true,
+				equipment : {
+					...this.state.equipment,
+					image: URL.createObjectURL(img),
+                	imageBytes: img
+				}
+			});
+        }
     }
 
     createSelectCategories() {
@@ -93,10 +200,15 @@ export default class EquipmentDetails extends React.Component {
         })
         return categories;
     }
-	
-	render() {
-        return (
-            <div className="container">
+
+    render() {
+        var imageStyle = {
+            width: "300px",
+            height: "400px"
+        };
+		var tableDiv = (<div></div>);
+		var editDiv = (
+			<div className="container">
                 <div className="header">Edit equipment</div>
                 <div className="form">
                     <form onSubmit={this.handleSubmit}>
@@ -107,33 +219,41 @@ export default class EquipmentDetails extends React.Component {
                             </input>                            
                         </span>
                         <span className="row">
-                            <label htmlFor="roomId">Room</label>
-                            <select id="roomId" value={this.state.equipment.roomId} 
-                                onChange={this.handleChange} name="roomId" required>
-                                    {this.createSelectRooms()}                                    
-                            </select>                            
-                        </span>
-                        <span className="row">
                             <label htmlFor="category">Category</label>
-                            <select id="categoryId" value={this.state.equipment.categoryId} 
-                                onChange={this.handleChange} name="categoryId" required>
+                            <select id="id" value={this.state.equipment.category.id} 
+                                onChange={this.handleCategoryChange} name="id" required>
                                     {this.createSelectCategories()}
                             </select>
                         </span>
                         <span className="row">
-                            <label htmlFor="functional">Functional</label>
-                            <input type="checkbox" id="functional" defaultChecked={this.state.equipment.functional}
-                                 onClick={this.handleCheckboxChange} name="functional"/>  
-                        </span>
+							<label htmlFor="myImage">Picture</label>
+							<input type="file" accept="image/*"
+								onChange={this.onImageChange} name="image"/>                                        
+						</span>
                         <span className="row">
-                            <button className="deleteButton" type="button" onClick={() => this.confirmDeleteEquipment(this.state.equipment.id)}>
+							<img src={this.state.equipment.image} style={this.state.equipment.image == null ? null : imageStyle} alt=""/>                    
+						</span>      
+                        <span className="row">
+                            <button className="deleteButton" type="button" onClick={() => this.confirmDeleteEquipment(this.state.equipment.id, this.state.equipment.items)}>
 								Delete
 							</button>
                             <button className="confirmButton" type="submit">Submit</button>                     
                         </span>
                     </form>
                 </div>
-            </div>			  
-        );		
+            </div>	
+            )
+		if(this.state.equipment.items.length !== 0 ) {
+			tableDiv = (
+				<div className="table">
+					<ReactTableComponent  
+						data = {this.state.equipment.items}
+						columns = {columns}/> 
+				</div>)	
+		}
+		return (
+			<div className="container">{[editDiv, tableDiv]}</div>
+		);	       	
 	}
+
 }

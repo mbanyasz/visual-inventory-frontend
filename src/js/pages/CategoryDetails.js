@@ -3,59 +3,62 @@ import axios from 'axios';
 import ReactTableComponent from '../components/ReactTableComponent';
 import { Link } from "react-router-dom";
 
-import green from '../../png/green.png';
-import red from '../../png/red.png';
-
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
 
+import move from '../../images/move.png';
+import deleteLogo from '../../images/delete.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 const columns = [
 	{
-		Header: "Edit",
+		Header: "",
 		accessor: 'id',
 		filterable: false,
-		width: 40,
-		Cell: cell => <div className="center"><Link to={{ pathname: `/equipments/details/${cell.value}` }}>Edit</Link></div>
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/move`, myProps: cell.original }}><img className="image" src={move} alt="moveLogo"/></Link></div>
 	},
 	{
-		Header: "Delete",
+		Header: "",
 		accessor: 'id',
 		filterable: false,
-		width: 70,
-		Cell: cell => <div className="center"><button onClick={() => confirmDelete(`${cell.value}`)}>Delete</button></div>
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/delete`, myProps: cell.original }}><img className="image" src={deleteLogo} alt="deleteLogo"/></Link></div>
 	},
-	{
-		Header: "Name",
-		accessor: 'name',
-		filterable: true,
+    {
+		Header: "#",
+		accessor: 'numberOfItems',
+		filterable: false,		
+		width: 80,
 		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
-	},	
+	},
 	{
+		Header: "Equipment",
+		accessor: 'equipment.name',
+		filterable: true,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/equipments/details/${cell.original.equipment.id}` }}>{cell.value}</Link></div>,
+	},
+    {
 		Header: "Room",
-		accessor: 'roomName',
+		accessor: 'room.name',
 		filterable: true,
-		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.original.roomId}` }}>{cell.value}</Link></div>,
-	},
-	{
+		Cell: cell => <div className="center"><Link to={{ pathname: `/rooms/details/${cell.original.room.id}` }}>{cell.value}</Link></div>,
+    },
+    {
 		Header: "Building",
-		accessor: 'roomBuilding',
+		accessor: 'room.building',
 		filterable: true,
-		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
-	},
-	{
+		Cell: cell => <div className="center">{cell.value}</div>,
+    },
+    {
 		Header: "Floor",
-		accessor: 'roomFloor',
+		accessor: 'room.floor',
 		filterable: true,
-		filterMethod: (filter, row) => row[filter.id] == filter.value,
-		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
-	},
-	{
-		Header: "Functional",
-		accessor: 'functional',
-		filterable: false,
-		width: 90,
-		Cell: cell => <div className="center">{cell.value ? <img className="image" src={green} alt="greenLogo" /> : <img src={red} alt="redLogo" />}</div>,
-	}];
+		filterMethod: (filter, row) => row[filter.id] === parseInt(filter.value),
+		Cell: cell => <div className="center">{cell.value}</div>,
+    }
+];
 
 function b64toBlob(b64Data, sliceSize=512) {
 		const contentType = 'image/png';
@@ -76,13 +79,6 @@ function b64toBlob(b64Data, sliceSize=512) {
 		return blob;
 }
 
-async function confirmDelete(id) {
-	if(window.confirm("Are you sure you wish to delete this item?")) {
-		await axios.delete("http://192.168.1.5:8080/api/equipments/" + id);		
-		window.location.reload();
-	}	
-}
-
 export default class CreateCategory extends React.Component {
 
     constructor(props) {
@@ -93,7 +89,7 @@ export default class CreateCategory extends React.Component {
 				name: '',
 				image: null,
 				imageBytes: null,
-				equipments: []
+				items: []
 			}
         };
 		   
@@ -112,10 +108,9 @@ export default class CreateCategory extends React.Component {
 			}
         });
 	}
-	
-	
+		
 	async componentDidMount() {
-		await fetch("http://192.168.1.5:8080/api/categories/" + this.props.match.params.id)
+		await fetch(BACKEND_SERVER_URL + "categories/" + this.props.match.params.id)
 			.then(res => res.json())
 			.then(json => this.setState({ category: json }));
 		this.setState({
@@ -143,8 +138,7 @@ export default class CreateCategory extends React.Component {
     async handleSubmit(event) {
         event.preventDefault();
 
-		let formData = new FormData();
-
+		let formData = new FormData();		
 		if(this.state.imageWasChanged) {
 			formData.append("file", this.state.category.imageBytes);
 		} else {
@@ -156,7 +150,7 @@ export default class CreateCategory extends React.Component {
 		formData.append('data', new Blob([JSON.stringify({"name": this.state.category.name})],
 		 	{ type: "application/json" }));
 
-        await axios.put("http://192.168.1.5:8080/api/categories/" + this.state.category.id, formData);
+        await axios.put(BACKEND_SERVER_URL + "categories/" + this.state.category.id, formData);
 
 		this.props.history.push({
             pathname: '/categories',
@@ -168,19 +162,19 @@ export default class CreateCategory extends React.Component {
 			window.alert("You can't delete this category until it has equipments associated with it")
 		} else {
 			if(window.confirm("Are you sure you wish to delete this category?")) {
-				await axios.delete("http://192.168.1.5:8080/api/categories/" + id);
+				await axios.delete(BACKEND_SERVER_URL + "categories/" + id);
 				this.props.history.push({
 					pathname: '/categories',
 				})
 			}
 		}	
 	}
-    	
+	
 	render() { 
         var imageStyle = {
             width: "300px",
             height: "400px"
-        };
+		};
 	
 		var tableDiv = (<div></div>);
 		var editDiv = (
@@ -210,11 +204,11 @@ export default class CreateCategory extends React.Component {
 					</form>
 				</div>
 			</div>)
-		if(this.state.category.equipments.length !== 0 ) {
+		if(this.state.category.items.length !== 0 ) {
 			tableDiv = (
 				<div className="table">
 					<ReactTableComponent  
-						data = {this.state.category.equipments}
+						data = {this.state.category.items}
 						columns = {columns}/> 
 				</div>)	
 		}

@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 
 import "../../css/pages/ListCategories.css"
 
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 export default class ListCategories extends React.Component {
 
     constructor(props) {
@@ -13,7 +15,7 @@ export default class ListCategories extends React.Component {
 	}
 	
 	componentDidMount() {
-		fetch("http://192.168.1.5:8080/api/categories")
+		fetch(BACKEND_SERVER_URL + "categories")
 			.then(res => res.json())
 			.then(json => this.setState({ data: json }));
 	}

@@ -22,3 +22,11 @@ div.table {
     margin-right: auto;
     display: block;
 }
+
+a:hover {
+    cursor: pointer;
+}
+
+a {
+    color: white;
+}

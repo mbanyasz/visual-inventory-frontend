@@ -3,53 +3,49 @@ import axios from 'axios';
 import ReactTableComponent from '../components/ReactTableComponent';
 import { Link } from "react-router-dom";
 
-import green from '../../png/green.png';
-import red from '../../png/red.png';
-
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
 
+import move from '../../images/move.png';
+import deleteLogo from '../../images/delete.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 const columns = [
 	{
-		Header: "Edit",
+		Header: "",
 		accessor: 'id',
 		filterable: false,
-		width: 40,
-		Cell: cell => <div className="center"><Link to={{ pathname: `/equipments/details/${cell.value}` }}>Edit</Link></div>
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/move`, myProps: cell.original }}><img className="image" src={move} alt="moveLogo"/></Link></div>
 	},
 	{
-		Header: "Delete",
+		Header: "",
 		accessor: 'id',
 		filterable: false,
-		width: 70,
-		Cell: cell => <div className="center"><button onClick={() => confirmDelete(`${cell.value}`)}>Delete</button></div>
+		width: 30,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/items/delete`, myProps: cell.original }}><img className="image" src={deleteLogo} alt="deleteLogo"/></Link></div>
 	},
-	{
-		Header: "Name",
-		accessor: 'name',
-		filterable: true,
+    {
+		Header: "#",
+		accessor: 'numberOfItems',
+		filterable: false,		
+		width: 80,
 		Cell: cell => <div className="center"><span>{cell.value}</span></div>,
 	},
 	{
-		Header: "Category",
-		accessor: 'categoryName',
+		Header: "Equipment",
+		accessor: 'equipment.name',
 		filterable: true,
-		Cell: cell => <div className="center"><Link to={{ pathname: `/categories/details/${cell.original.categoryId}` }}>{cell.value}</Link></div>,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/equipments/details/${cell.original.equipment.id}` }}>{cell.value}</Link></div>,
 	},
 	{
-		Header: "Functional",
-		accessor: 'functional',
-		filterable: false,
-		width: 90,
-		Cell: cell => <div className="center">{cell.value ? <img className="image" src={green} alt="greenLogo" /> : <img src={red} alt="redLogo" />}</div>,
-	}];
-
-function confirmDelete(id) {
-	if(window.confirm("Are you sure you wish to delete this item?")) {
-		axios.delete("http://192.168.1.5:8080/api/equipments/" + id);
-		window.location.reload();
-	}	
-}
+		Header: "Category",
+		accessor: 'equipment.category.name',
+		filterable: true,
+		Cell: cell => <div className="center"><Link to={{ pathname: `/categories/details/${cell.original.equipment.category.id}` }}>{cell.value}</Link></div>,
+	}
+];
 
 export default class RoomDetails extends React.Component {
 
@@ -60,7 +56,7 @@ export default class RoomDetails extends React.Component {
 				name: '',
 				building: '',
 				floor: '',
-				equipments: []
+				items: []
 			}
         }; 
         
@@ -79,9 +75,9 @@ export default class RoomDetails extends React.Component {
 	}
 	
 	componentDidMount() {
-		fetch("http://192.168.1.5:8080/api/rooms/" + this.props.match.params.id)
+		fetch(BACKEND_SERVER_URL + "rooms/" + this.props.match.params.id)
 			.then(res => res.json())
-            .then(json => this.setState({ room: json }));
+			.then(json => this.setState({ room: json }));
 	}
     
     async handleSubmit(event) {
@@ -93,19 +89,19 @@ export default class RoomDetails extends React.Component {
             floor: this.state.room.floor
         }
 
-        await axios.put("http://192.168.1.5:8080/api/rooms/" + this.state.room.id, room);
+        await axios.put(BACKEND_SERVER_URL + "rooms/" + this.state.room.id, room);
 
         this.props.history.push({
             pathname: '/rooms',
         })
 	}
 	
-	async confirmDeleteRoom(id, equipments) {
-		if(equipments && equipments.length > 0) {
-			window.alert("You can't delete this room until it has equipments associated with it")
+	async confirmDeleteRoom(id, items) {
+		if(items && items.length > 0) {
+			window.alert("You can't delete this room until it has items associated with it")
 		} else {
 			if(window.confirm("Are you sure you wish to delete this room?")) {
-				await axios.delete("http://192.168.1.5:8080/api/rooms/" + id);
+				await axios.delete(BACKEND_SERVER_URL + "rooms/" + id);
 				this.props.history.push({
 					pathname: '/rooms',
 				})
@@ -136,7 +132,7 @@ export default class RoomDetails extends React.Component {
 								onChange={this.handleChange} name="floor" required></input>                            
 						</span>
 						<span className="row">
-							<button className="deleteButton" type="button" onClick={() => this.confirmDeleteRoom(this.state.room.id, this.state.room.equipments)}>
+							<button className="deleteButton" type="button" onClick={() => this.confirmDeleteRoom(this.state.room.id, this.state.room.items)}>
 								Delete
 							</button>
 							<button className="confirmButton" type="submit">Edit</button>                       
@@ -144,11 +140,11 @@ export default class RoomDetails extends React.Component {
 					</form>
 				</div>
 			</div>)
-		if(this.state.room.equipments.length !== 0 ) {
+		if(this.state.room.items.length !== 0 ) {
 			tableDiv = (
 				<div className="table">
 					<ReactTableComponent  
-						data = {this.state.room.equipments}
+						data = {this.state.room.items}
 						columns = {columns}/> 
 				</div>)	
 		}

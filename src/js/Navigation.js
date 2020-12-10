@@ -3,12 +3,15 @@ import { Link } from "react-router-dom";
 
 import '../css/Navigation.css';
 
+import home from '../images/home.png';
+
 export default class Navigation extends React.Component {
 
     render() {
         return (
             <div>
                 <div className="navbar">
+                    <Link to="/"><img className="image" src={home} alt="homeLogo"/></Link>
                     <div className="dropdown">
                         <button className="dropbtn">Rooms</button>
                         <div className="dropdown-content">
@@ -28,6 +31,13 @@ export default class Navigation extends React.Component {
                         <div className="dropdown-content">
                             <Link to="/equipments">List Equipments</Link>
                             <Link to="/equipments/create">Create Equipment</Link>
+                        </div>
+                    </div> 
+                    <div className="dropdown">
+                        <button className="dropbtn">Items</button>
+                        <div className="dropdown-content">
+                            <Link to="/items">List Items</Link>
+                            <Link to="/items/create">Create Items</Link>
                         </div>
                     </div> 
                 </div>

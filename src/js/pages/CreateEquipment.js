@@ -4,32 +4,32 @@ import axios from 'axios';
 import "../../css/pages/CommonTable.css"
 import "../../css/components/Form.css"
 
+import no_image from '../../images/no-image.png';
+
+const BACKEND_SERVER_URL = process.env.REACT_APP_BACKEND_SERVER_URL;
+
 export default class CreateEquipment extends React.Component {
 
     constructor(props) {
         super(props);
 		this.state = {
-            rooms: [],
             categories: [],
             name: '',
-            numberOfEquipment: 1,
-            roomId: '',
-            categoryId: ''
+            categoryId: '',
+            image: null,
+            imageBytes: null
         }; 
-        
+        		   
         this.handleChange = this.handleChange.bind(this);
-        this.handleSubmit = this.handleSubmit.bind(this);
+        this.onImageChange = this.onImageChange.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this);   
     }
 
     async componentDidMount() {
-		await fetch("http://192.168.1.5:8080/api/rooms")
+        await fetch(BACKEND_SERVER_URL + "categories")
 			.then(res => res.json())
-            .then(json => this.setState({ rooms: json }));
-        await fetch("http://192.168.1.5:8080/api/categories")
-			.then(res => res.json())
-            .then(json => this.setState({ categories: json }));
-                              
-        this.state.roomId = this.state.rooms[0].id;                  
+            .then(json => this.setState({ categories: json }));                              
+    
         this.state.categoryId = this.state.categories[0].id;
 	}
 
@@ -38,31 +38,43 @@ export default class CreateEquipment extends React.Component {
             [event.target.name]: event.target.value
         });
     }
+
+    onImageChange(event) {
+        if (event.target.files && event.target.files[0]) {
+            let img = event.target.files[0];
+            this.setState({							
+				...this.state,
+                image: URL.createObjectURL(img),
+                imageBytes: img
+            });
+        }
+    }
     
     async handleSubmit(event) {
         event.preventDefault();
-
+        
         var equipment = {
-            name: this.state.name,
-            roomId: this.state.roomId,
-            categoryId: this.state.categoryId,
-            numberOfEquipment: this.state.numberOfEquipment
+            "name": this.state.name,
+            "categoryId": this.state.categoryId
         }
 
-        await axios.post("http://192.168.1.5:8080/api/equipments/", equipment);
+        let formData = new FormData();
+
+        if(this.state.imageBytes == null) {
+            let defaultImage = await fetch(no_image)
+				.then(image => image.blob());
+            formData.append("file", defaultImage);
+        } else {
+            formData.append("file", this.state.imageBytes);
+        }
+
+        formData.append('data', new Blob([JSON.stringify(equipment)], {type: "application/json"}));
+
+        await axios.post(BACKEND_SERVER_URL + "equipments/", formData);
 
         this.props.history.push({
             pathname: '/equipments',
         })
-    }
-
-    createSelectRooms() {
-        var rooms = [];        
-        this.state.rooms.sort((a, b) => (a.name.toLowerCase() > b.name.toLowerCase()) ? 1 : -1);
-        this.state.rooms.forEach(function(element) {
-            rooms.push(<option value={element.id}>{element.name}</option>)
-        })
-        return rooms;
     }
 
     createSelectCategories() {
@@ -75,6 +87,11 @@ export default class CreateEquipment extends React.Component {
     }
 	
 	render() { 
+        var imageStyle = {
+            width: "300px",
+            height: "400px"
+        };
+
         return (
             <div className="container">
                 <div className="header">Create a new equipment</div>
@@ -87,13 +104,6 @@ export default class CreateEquipment extends React.Component {
                             </input>                            
                         </span>
                         <span className="row">
-                            <label htmlFor="roomId">Room</label>
-                            <select id="roomId" value={this.state.roomId} 
-                                onChange={this.handleChange} name="roomId" required>
-                                    {this.createSelectRooms()}                                    
-                            </select>                            
-                        </span>
-                        <span className="row">
                             <label htmlFor="category">Category</label>
                             <select id="categoryId" value={this.state.categoryId} 
                                 onChange={this.handleChange} name="categoryId" required>
@@ -101,11 +111,13 @@ export default class CreateEquipment extends React.Component {
                             </select>
                         </span>
                         <span className="row">
-                            <label htmlFor="catenumberOfEquipmentgory">#Number</label>
-                            <input type="number" id="numberOfEquipment" value={this.state.numberOfEquipment} 
-                                onChange={this.handleChange} name="numberOfEquipment" required>                                   
-                            </input>                            
-                        </span>
+                            <label htmlFor="imageBytes">Picture</label>
+                            <input type="file" id="imageBytes" accept="image/*"
+                                onChange={this.onImageChange} name="imageBytes"/>                     
+                        </span> 
+                        <span className="row">
+                            <img src={this.state.image} style={this.state.image == null ? null : imageStyle} alt=""/>                    
+                        </span>                        
                         <span className="row">
                             <button className="confirmButton" type="submit">Submit</button>                     
                         </span>
